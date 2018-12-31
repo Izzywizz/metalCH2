@@ -81,14 +81,13 @@ renderEncoder.setVertexBuffer(mesh.vertexBuffers[0].buffer,
 
 renderEncoder.setTriangleFillMode(.lines)
 
-guard let submesh = mesh.submeshes.first else {
-  fatalError()
+for submesh in mesh.submeshes {
+    renderEncoder.drawIndexedPrimitives(type: .triangle,
+                                        indexCount: submesh.indexCount,
+                                        indexType: submesh.indexType,
+                                        indexBuffer: submesh.indexBuffer.buffer,
+                                        indexBufferOffset: submesh.indexBuffer.offset)
 }
-renderEncoder.drawIndexedPrimitives(type: .triangle,
-                                    indexCount: submesh.indexCount,
-                                    indexType: submesh.indexType,
-                                    indexBuffer: submesh.indexBuffer.buffer,
-                                    indexBufferOffset: 0)
 
 renderEncoder.endEncoding()
 guard let drawable = view.currentDrawable else {
