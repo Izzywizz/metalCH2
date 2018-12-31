@@ -15,13 +15,30 @@ guard let commandQueue = device.makeCommandQueue() else {
 }
 
 let allocator = MTKMeshBufferAllocator(device: device)
-let mdlMesh = MDLMesh(coneWithExtent: [1, 1, 1],
-                      segments: [10, 10],
-                      inwardNormals: false,
-                      cap: true,
-                      geometryType: .triangles,
-                      allocator: allocator)
-let mesh = try MTKMesh(mesh: mdlMesh, device: device)
+/// Sets up the URL for the model
+guard let assetURL = Bundle.main.url(forResource: "train", withExtension: "obj") else {
+    fatalError()
+}
+
+//1 - Create a descriptor, config the properties
+let vertexDescriptor = MTLVertexDescriptor()
+//2 - obj file holds the data as a float3 (xyz)
+vertexDescriptor.attributes[0].format = .float3
+//3 - the offset specifies where this buffer thjis paticular data will start
+vertexDescriptor.attributes[0].offset = 0
+//4 - Recall that you send vertex data to the GPU via render encoder which via MTLBuffer can identify tthe buffer by an index. MEtal has 31 buffers available and keeps track of them. Use buffer 0 so that the vertex shader func will match incoming vertex data with this layout.
+vertexDescriptor.attributes[0].bufferIndex = 0
+
+//1 - setting the stride to float3 ensures that you get the next vertex info, normally you would have to add the Normal and texture Coords (which are float 3 + float2) but you are only doing position data, so to get to the next postion, you jump by a stride of float3
+//The stride is the number of bytes between each set of vertex information. (rfere to diagram page 51)
+vertexDescriptor.layouts[0].stride = MemoryLayout<float3>.stride
+//2 - Metal IO requires a slightly different format vertex descriptor, a MEtal IO one if you will
+let meshDescriptor = MTKModelIOVertexDescriptorFromMetal(vertexDescriptor)
+//3 - Assign the string name "position" to the attribute, we are only interested in position data (not normal. texture)
+(meshDescriptor.attributes[0] as! MDLVertexAttribute).name = MDLVertexAttributePosition
+
+let asset = MDLAsset(url: assetURL, vertexDescriptor: meshDescriptor, bufferAllocator: allocator)
+let mesh = try MTKMesh(mesh: asset.object(at: 0) as! MDLMesh, device: device)
 
 let shader = """
 #include <metal_stdlib> \n
